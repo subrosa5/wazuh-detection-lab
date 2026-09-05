@@ -105,6 +105,17 @@ write-up - does not run `wazuh-logtest` in CI.
 
 ## Honest gaps (read this before trusting any of it blindly)
 
+- **The first pushed version of this repo failed its own CI**:
+  `<list field="..." negate="yes">` (used to exclude allow-listed
+  sources) is not valid Wazuh syntax - a real `wazuh-manager:4.14.7`
+  refused to start (`ERROR: List field="yes" is not valid`), and the
+  health-check step caught it before anything else ran. Fixed by
+  restructuring the allow-list check as a child rule instead of a
+  negated condition - see the comment headers in
+  `rules/100910-lsass-credential-access.xml` and
+  `rules/100900-app-bruteforce.xml`, and
+  [the run that caught it](https://github.com/subrosa5/wazuh-detection-lab/actions/runs/33967376239).
+  Left in the history deliberately instead of squashed away.
 - `rules/100920-process-injection.xml` has no benign test sample or
   allow-list - explained in its own doc, not hidden.
 - The LSASS allow-list (`lists/lsass-access-allowlist`) is path-based,

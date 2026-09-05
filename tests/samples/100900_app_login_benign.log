@@ -1,2 +1,5 @@
 2026-09-05T03:00:00Z app=billing-api event=login_failed user=svc-healthcheck src_ip=10.10.4.12 attempts=1 reason="token_expired"
 2026-09-05T03:00:05Z app=billing-api event=login_failed user=svc-healthcheck src_ip=10.10.4.12 attempts=1 reason="token_expired"
+2026-09-05T03:00:12Z app=billing-api event=login_failed user=svc-healthcheck src_ip=10.10.4.12 attempts=1 reason="token_expired"
+2026-09-05T03:00:20Z app=billing-api event=login_failed user=svc-healthcheck src_ip=10.10.4.12 attempts=1 reason="token_expired"
+2026-09-05T03:00:31Z app=billing-api event=login_failed user=svc-healthcheck src_ip=10.10.4.12 attempts=1 reason="token_expired"

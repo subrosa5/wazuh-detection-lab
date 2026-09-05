@@ -5,6 +5,15 @@
   Pairs with decoders/100900-custom-app-auth.xml. Demonstrates PCRE field
   extraction driving a frequency/timeframe correlation, gated by a CDB
   allow-list of known automation accounts (lists/app-auth-service-accounts).
+
+  CORRECTED AFTER A REAL CI FAILURE, not assumed: an earlier version used
+  `<list ... negate="yes">` on rule 100902 to exclude allow-listed
+  accounts from the frequency correlation directly. That is not valid
+  Wazuh syntax - analysisd refused to load this file at all
+  ("ERROR: List field="yes" is not valid"), caught by the CI health-check
+  on the first push. Fixed using the same confirmed-valid pattern as
+  100910-lsass-credential-access.xml: the allow-list check (100903) is a
+  CHILD of the correlation rule (100902), not a negated condition on it.
 -->
 <group name="local,authentication,application,">
 
@@ -27,18 +36,30 @@
     <description>billing-api: failed login by allow-listed service account $(user) - suppressed</description>
   </rule>
 
-  <!-- 5 failed logins from the same source IP within 2 minutes, excluding
-       allow-listed accounts, correlated regardless of which user was tried
-       (covers both single-account brute force and password-spraying) -->
+  <!-- 5 failed logins from the same source IP within 2 minutes, correlated
+       regardless of which user was tried (covers both single-account
+       brute force and password-spraying). Requires the CURRENT event to
+       itself be a fresh login_failed (<if_sid>) in addition to the
+       frequency condition (<if_matched_sid>). -->
   <rule id="100902" level="10" frequency="5" timeframe="120">
+    <if_sid>100900</if_sid>
     <if_matched_sid>100900</if_matched_sid>
-    <list field="user" lookup="match_key" negate="yes">etc/lists/app-auth-service-accounts</list>
     <same_source_ip />
     <description>billing-api: possible brute-force / password spraying - 5+ failed logins from $(srcip) in 120 seconds</description>
     <mitre>
       <id>T1110</id>
     </mitre>
     <group>authentication_failed,brute_force,</group>
+  </rule>
+
+  <!-- If the account that tipped the frequency threshold is itself
+       allow-listed (e.g. a burst of legitimate automation failures during
+       a credential rotation), suppress the correlation alert too. -->
+  <rule id="100903" level="0">
+    <if_sid>100902</if_sid>
+    <list field="user" lookup="match_key">etc/lists/app-auth-service-accounts</list>
+    <options>no_full_log</options>
+    <description>billing-api: 5+ failed logins by allow-listed service account $(user) from $(srcip) - suppressed</description>
   </rule>
 
 </group>

@@ -22,13 +22,18 @@ Mimikatz does.
    `lsass.exe`. Wide net, `no_full_log` to avoid indexing every hit.
 2. **100912** (level 12): the `GrantedAccess` mask matches a
    documented Mimikatz/ProcDump-style read (`0x1010`, `0x1400-0x1410`,
-   `0x1438`/`0x143a`, `0x1fffff`), AND the source process is not on the
-   allow-list.
-3. **100913** (level 6): any other non-allow-listed access - lower
-   confidence (mask doesn't match a known tool), still worth a human
-   look.
-4. **100911** (level 0): source process is on `lists/lsass-access-allowlist`
-   - suppressed.
+   `0x1438`/`0x143a`, `0x1fffff`).
+3. **100913** (level 6): any other access whose mask does NOT match that
+   set (`negate="yes"` on the same regex, making 100912/100913
+   structurally mutually exclusive) - lower confidence, still worth a
+   human look.
+4. **100914** / **100915** (level 0, children of 100912 / 100913
+   respectively): source process is on `lists/lsass-access-allowlist` -
+   suppressed. Allow-listing is applied as a *child rule* of each
+   detection, not as a negated list condition on it - see the comment
+   header in the rule file for why (a `<list negate="yes">` version of
+   this shipped first and failed CI, caught by a real `wazuh-manager`
+   refusing to start).
 
 ## Known false positives
 

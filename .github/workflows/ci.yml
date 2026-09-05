@@ -47,6 +47,12 @@ jobs:
         run: |
           docker inspect --format='{{json .State.Health}}' wazuh-manager | python3 -m json.tool || true
           docker logs wazuh-manager --tail 300
+          echo "--- ossec.conf <list> registrations ---"
+          docker exec wazuh-manager grep -n "<list>" /var/ossec/etc/ossec.conf || true
+          echo "--- /var/ossec/etc/lists contents (compiled .cdb should sit next to each source file) ---"
+          docker exec wazuh-manager ls -la /var/ossec/etc/lists/ || true
+          echo "--- lsass-access-allowlist as seen inside the container (od -c to catch hidden/escaped bytes) ---"
+          docker exec wazuh-manager sh -c "od -c /var/ossec/etc/lists/lsass-access-allowlist | head -40" || true
 
       - name: Regenerate MITRE coverage layer
         run: python3 scripts/generate_mitre_navigator_layer.py

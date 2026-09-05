@@ -1,5 +1,7 @@
 # Wazuh Detection Lab
 
+*[Читать на русском](README.ru.md)*
+
 A working example of **Detection Engineering** on [Wazuh](https://wazuh.com/) -
 the discipline of turning raw endpoint/network telemetry (Sysmon,
 PowerShell logging, application logs, syslog) into alerts a human should

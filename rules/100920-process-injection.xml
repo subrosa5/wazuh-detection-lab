@@ -2,14 +2,19 @@
   Detection: Process Injection via Remote Thread Creation (Sysmon Event ID 8)
   MITRE ATT&CK: T1055 (Process Injection), T1055.001 (DLL Injection / shellcode)
 
-  Parent condition relies on group `sysmon_event8` (no underscore - unlike
-  sysmon_event_10, see 100910-lsass-credential-access.xml). Verified via
-  tests/run_tests.py, not assumed.
+  Matches directly on win.system.channel + win.system.eventID rather than
+  chaining off a default-ruleset group (e.g. `sysmon_event8`) - see the
+  comment header in 100910-lsass-credential-access.xml for why: that
+  approach shipped first here too and never fired in CI, because
+  `wazuh-logtest` decodes a fed JSON event via the generic built-in `json`
+  decoder, not whichever internal path populates that group for live
+  agent telemetry.
 -->
 <group name="local,defense_evasion,windows,sysmon,">
 
   <rule id="100920" level="3">
-    <if_group>sysmon_event8</if_group>
+    <field name="win.system.channel">^Microsoft-Windows-Sysmon/Operational$</field>
+    <field name="win.system.eventID">^8$</field>
     <options>no_full_log</options>
     <description>Sysmon: remote thread created ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage))</description>
     <mitre>

@@ -102,11 +102,10 @@ def main() -> int:
 
         if not ok:
             failures.append(case["name"])
-            if "--debug" in sys.argv or not got:
-                print("         --- raw wazuh-logtest output (debug) ---")
-                for line in output.splitlines():
-                    print(f"         | {line}")
-                print("         --- end raw output ---")
+            print("         --- raw wazuh-logtest output (debug) ---")
+            for line in output.splitlines():
+                print(f"         | {line}")
+            print("         --- end raw output ---")
 
     print()
     total = len(manifest["tests"])

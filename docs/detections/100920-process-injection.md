@@ -7,6 +7,11 @@
 | **Data source** | Sysmon Event ID 8 (CreateRemoteThread) |
 | **Tests** | `tests/samples/100920_process_injection_attack.json` (no paired benign sample - see below) |
 
+Matches directly on `win.system.channel` + `win.system.eventID`, not a
+default-ruleset group - see the comment header in
+`100910-lsass-credential-access.xml` for why (it shipped chained off
+`sysmon_event8` first, and never fired in CI).
+
 ## Hypothesis
 
 A malicious loader injects shellcode or a reflectively-loaded DLL into a

@@ -26,7 +26,7 @@
       "sourceImage": "C:\\Windows\\Temp\\update.exe",
       "targetProcessGUID": "{9f2a1e3c-0800-6710-0000-000000000800}",
       "targetProcessId": "2244",
-      "targetImage": "C:\\Windows\\System32\\svchost.exe",
+      "targetImage": "C:\\Windows\\explorer.exe",
       "newThreadId": "9981",
       "startAddress": "0x000001FA2C3D0000",
       "startModule": "",

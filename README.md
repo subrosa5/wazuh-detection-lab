@@ -105,6 +105,22 @@ write-up - does not run `wazuh-logtest` in CI.
 
 ## Honest gaps (read this before trusting any of it blindly)
 
+- **This repo's CI turned up three real bugs before anything else saw the
+  code**, in order: (1) `<list negate="yes">` isn't valid syntax and
+  crashed analysisd outright; (2) `100910`/`100920` chained off Wazuh's
+  default Sysmon ruleset groups (`sysmon_event_10`, `sysmon_event8`) via
+  `<if_group>`, which never populated when `wazuh-logtest` decoded the
+  test JSON through its generic built-in `json` decoder instead of
+  whatever path feeds those groups for live agent telemetry - fixed by
+  matching directly on `win.system.channel`/`eventID` instead, the same
+  pattern `100930` already used; (3) a decoder `<order>` field literally
+  named `user` silently decoded as the static field `dstuser` instead,
+  so the CDB allow-list lookups referencing `field="user"` never matched
+  anything. None of these were visible from reading the XML - all three
+  came from `tests/run_tests.py` actually running against a live
+  `wazuh-manager`. See the full sequence of pushes in this repo's commit
+  history and [Actions runs](https://github.com/subrosa5/wazuh-detection-lab/actions)
+  if you want the blow-by-blow.
 - **The first pushed version of this repo failed its own CI**:
   `<list field="..." negate="yes">` (used to exclude allow-listed
   sources) is not valid Wazuh syntax - a real `wazuh-manager:4.14.7`

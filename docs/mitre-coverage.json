@@ -36,7 +36,7 @@
     {
       "techniqueID": "T1110",
       "score": 1,
-      "comment": "100900: billing-api: failed login for user $(user) from $(srcip); 100902: billing-api: possible brute-force / password spraying - 5+ failed logins from $(srcip) in 120 seconds"
+      "comment": "100900: billing-api: failed login for user $(dstuser) from $(srcip); 100902: billing-api: possible brute-force / password spraying - 5+ failed logins from $(srcip) in 120 seconds"
     }
   ],
   "gradient": {

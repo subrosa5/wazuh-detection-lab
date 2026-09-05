@@ -20,7 +20,7 @@
         "sourceImage": "C:\\Windows\\Temp\\loader.exe",
         "targetProcessGUID": "{9f2a1e3c-0800-6710-0000-000000000800}",
         "targetProcessId": "2244",
-        "targetImage": "C:\\Windows\\System32\\svchost.exe",
+        "targetImage": "C:\\Windows\\explorer.exe",
         "newThreadId": "8871",
         "startAddress": "0x000002AB4D110000",
         "startModule": "",

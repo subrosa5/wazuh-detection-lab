@@ -57,7 +57,10 @@ bash scripts/bootstrap_manager.sh           # registers CDB lists, restarts anal
 python3 tests/run_tests.py                  # runs the full detection regression suite
 ```
 
-Expected output: `PASSED: all 8 test case(s).`
+Expected output: `PASSED: all 8 test case(s).` (verified green in CI:
+[the run](https://github.com/subrosa5/wazuh-detection-lab/actions/runs/33969042374)
+after 8 iterations of the actual bug-hunting sequence below - left in the
+commit history on purpose).
 
 To poke at a rule interactively:
 

@@ -62,6 +62,14 @@
       "sample": "samples/100940_chain_sequence.json",
       "expect_rules": [100921, 100941, 100942],
       "description": "injection -> LSASS dump -> suspicious PowerShell within 5-minute windows must escalate all the way to the level-15 incident rule (one rule id per stage - each is the most specific match for its own event)."
+    },
+    {
+      "name": "credential-access-chain-timeframe-expired",
+      "type": "sequence",
+      "sample": "samples/100940_chain_sequence_timeout.json",
+      "expect_rules": [100921, 100912],
+      "forbid_rules": [100941, 100942],
+      "description": "The negative case for the flagship correlation rule: injection followed by LSASS dump 10 minutes later (outside the 5-minute timeframe) must still fire both atomic rules independently, but must NOT escalate to the chain rules - proves the timeframe boundary is actually enforced, not just that the happy path works."
     }
   ]
 }

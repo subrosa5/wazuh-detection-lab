@@ -1,0 +1,62 @@
+[
+  {
+    "_stage": "1-injection",
+    "_expect_rule": 100921,
+    "_note": "Same injection as the positive-path sample, but stage 2 below is 10 minutes later - outside the 5-minute (timeframe=300) correlation window in rules/100940-credential-access-chain.xml. This proves the chain does NOT escalate on a stale precursor, not just that it escalates when everything lines up.",
+    "win": {
+      "system": {
+        "providerName": "Microsoft-Windows-Sysmon",
+        "eventID": "8",
+        "systemTime": "2026-09-05T12:00:00.000Z",
+        "eventRecordID": "61000",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "computer": "WIN-DC01.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "CreateRemoteThread detected:"
+      },
+      "eventdata": {
+        "utcTime": "2026-09-05 12:00:00.000",
+        "sourceProcessGUID": "{9f2a1e3c-5000-6710-0301-000000003300}",
+        "sourceProcessId": "8899",
+        "sourceImage": "C:\\Windows\\Temp\\loader2.exe",
+        "targetProcessGUID": "{9f2a1e3c-0800-6710-0000-000000000800}",
+        "targetProcessId": "3355",
+        "targetImage": "C:\\Windows\\explorer.exe",
+        "newThreadId": "9922",
+        "startAddress": "0x000003BC5E220000",
+        "startModule": "",
+        "startFunction": ""
+      }
+    }
+  },
+  {
+    "_stage": "2-lsass-dump-after-window-expired",
+    "_expect_rule": 100912,
+    "_note": "10 minutes after stage 1 (>300s timeframe) - must fire the atomic LSASS rule (100912) but must NOT fire the chain rule (100941), since the injection precursor has aged out of the correlation window.",
+    "win": {
+      "system": {
+        "providerName": "Microsoft-Windows-Sysmon",
+        "eventID": "10",
+        "systemTime": "2026-09-05T12:10:00.000Z",
+        "eventRecordID": "61002",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "computer": "WIN-DC01.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "Process accessed:"
+      },
+      "eventdata": {
+        "utcTime": "2026-09-05 12:10:00.000",
+        "sourceProcessGUID": "{9f2a1e3c-5000-6710-0301-000000003300}",
+        "sourceProcessId": "8899",
+        "sourceImage": "C:\\Windows\\Temp\\loader2.exe",
+        "targetProcessGUID": "{9f2a1e3c-2f10-6710-0000-001000000200}",
+        "targetProcessId": "672",
+        "targetImage": "C:\\Windows\\System32\\lsass.exe",
+        "grantedAccess": "0x1010",
+        "callTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c534|C:\\Windows\\Temp\\loader2.exe+2010",
+        "sourceUser": "CORP\\svc-helpdesk",
+        "targetUser": "NT AUTHORITY\\SYSTEM"
+      }
+    }
+  }
+]

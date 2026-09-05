@@ -7,23 +7,59 @@
 # https://github.com/wazuh/wazuh-docker (single-node/) on top; this repo
 # only needs analysisd, which lives in the manager image alone.
 #
-# Version is pinned deliberately (never `latest`) so CI doesn't silently
-# break when Wazuh ships a new release - see README.md "Versioning".
+# SECURITY POSTURE - this is a local/CI testing lab, not a production
+# deployment, and is hardened accordingly (see docs/architecture.md
+# "Security posture of this compose file" for the full writeup and why
+# each of these matters):
+#   - image pinned by digest, not a mutable tag (see the comment below)
+#   - every published port is bound to 127.0.0.1 only - nothing here is
+#     reachable from the network, let alone the internet, by default
+#   - the agent-enrollment/event-collection ports below are not even used
+#     by this repo's own tests (which only ever `docker exec` into the
+#     container) - they're published purely so a curious reader can
+#     connect a real agent or hit the API locally if they want to; if you
+#     don't need that, delete the `ports:` block entirely for a smaller
+#     attack surface
+#   - default API/agent-enrollment credentials are NOT changed here -
+#     do that yourself (documentation.wazuh.com "Securing the Wazuh
+#     server API") before this is reachable by anyone but you
+#   - CDB lists are staged read-only and copied into the container's own
+#     writable layer rather than bind-mounted read-write - a compromised
+#     manager process can still edit its own runtime list, but that edit
+#     never reaches this git working tree (see scripts/bootstrap_manager.sh)
 services:
   wazuh-manager:
-    image: wazuh/wazuh-manager:4.14.7
+    # wazuh/wazuh-manager:4.14.7 as of writing - pinned by digest, not the
+    # mutable tag, so `docker compose pull` can't silently swap the image
+    # out from under CI or a local run. Re-pin deliberately (in its own
+    # commit) when bumping versions; find the current digest with:
+    #   docker buildx imagetools inspect wazuh/wazuh-manager:<version>
+    image: wazuh/wazuh-manager@sha256:80cada6a192fcb8caa8b415a5b64e2155138dd8df1da3a7b227d7e5e4e7460c0
     container_name: wazuh-manager
     hostname: wazuh-manager
     restart: unless-stopped
     ports:
-      - "1514:1514/udp"  # agent event collection
-      - "1515:1515"      # agent enrollment
-      - "55000:55000"    # REST API (not used by the test harness, exposed for manual use)
+      # Default secure agent<->manager channel is TCP, not UDP - see
+      # documentation.wazuh.com "remote" (ossec.conf reference). An
+      # earlier version of this file published 1514/udp, which is the
+      # wrong protocol for a real agent to ever connect on; fixed here.
+      - "127.0.0.1:1514:1514"      # agent event collection (TCP)
+      - "127.0.0.1:1515:1515"      # agent enrollment (authd)
+      - "127.0.0.1:55000:55000"    # REST API - not used by the test harness, exposed for manual use
     volumes:
       - ./rules:/var/ossec/etc/rules:ro
       - ./decoders:/var/ossec/etc/decoders:ro
-      - ./lists:/var/ossec/etc/lists   # NOT read-only: Wazuh compiles each
-        # plaintext list to a .cdb file in this same directory on load
+      # Staged read-only, NOT bind-mounted onto /var/ossec/etc/lists.
+      # Wazuh compiles each plaintext list to a .cdb file next to its
+      # source on load, so that directory must be writable at runtime -
+      # but writable-and-bind-mounted would mean a compromised manager
+      # process could edit the allow-list (or anything else in this
+      # directory) and have that change land directly in this repo's
+      # working tree on the host. scripts/bootstrap_manager.sh copies
+      # from this read-only staging path into the container's own
+      # writable filesystem instead, so runtime writes stay in the
+      # container and are gone on the next `docker compose up`.
+      - ./lists:/wazuh-lab/lists-src:ro
     # Deliberately narrow: checks for the wazuh-logtest unix socket
     # specifically, not `wazuh-control status` (tried first - see
     # docs/architecture.md "Health check"). `wazuh-control status` also

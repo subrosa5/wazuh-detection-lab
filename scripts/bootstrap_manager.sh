@@ -13,6 +13,21 @@ set -euo pipefail
 CONTAINER="${1:-wazuh-manager}"
 LISTS=(lsass-access-allowlist app-auth-service-accounts)
 
+# Copy the source lists from their read-only staging mount
+# (/wazuh-lab/lists-src, see docker-compose.yml) into the container's own
+# writable filesystem at /var/ossec/etc/lists - deliberately NOT a
+# bind-mount, so that when Wazuh compiles each one to a .cdb here (or if
+# a compromised manager process ever edits one directly), that write
+# stays inside the container instead of landing back in this repo's
+# working tree on the host.
+echo "Copying CDB lists into ${CONTAINER}:/var/ossec/etc/lists/ ..."
+for list in "${LISTS[@]}"; do
+  docker exec "$CONTAINER" sh -c "
+    cp /wazuh-lab/lists-src/${list} /var/ossec/etc/lists/${list} &&
+    chown wazuh:wazuh /var/ossec/etc/lists/${list}
+  "
+done
+
 echo "Registering CDB lists in ${CONTAINER}:/var/ossec/etc/ossec.conf ..."
 for list in "${LISTS[@]}"; do
   docker exec "$CONTAINER" bash -c "

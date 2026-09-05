@@ -78,8 +78,65 @@ and faster to go green.
 
 ## Versioning
 
-`wazuh/wazuh-manager:4.14.7` is pinned explicitly everywhere it's
-referenced (`docker-compose.yml`). Never `latest` - a CI pipeline that
-silently starts testing against a different Wazuh version than what's
-running in production is worse than no CI. Bump the pin deliberately,
-in its own commit, after re-running the full suite.
+`wazuh/wazuh-manager` is pinned by **digest**, not the `4.14.7` tag,
+everywhere it's referenced (`docker-compose.yml`) - a mutable tag can be
+repointed at a different image without the repo changing at all; a
+digest can't. Never `latest` either way - a CI pipeline that silently
+starts testing against a different Wazuh version than what's running in
+production is worse than no CI. Bump the pin deliberately, in its own
+commit, after re-running the full suite; find the current digest for a
+given tag with `docker buildx imagetools inspect wazuh/wazuh-manager:<tag>`.
+
+GitHub Actions in `.github/workflows/ci.yml` are pinned by commit SHA
+(`actions/checkout@<sha> # v4.4.0`) for the same reason - a floating
+`@v4` tag is one compromised or force-pushed release away from running
+different code in this pipeline than what was reviewed.
+
+## Security posture of this compose file
+
+This is a **local/CI testing lab**, not a production deployment - but it
+was reviewed as if it might get exposed anyway, since "it's just a demo"
+is exactly the kind of thing that ends up reachable from the internet by
+accident. Concretely:
+
+- **Every published port is bound to `127.0.0.1` only** (`docker-compose.yml`).
+  Nothing here is reachable from the network by default, let alone the
+  internet - not the manager API (`55000`), not agent enrollment
+  (`1515`), not event collection (`1514`). An earlier version of this
+  file published those ports on all interfaces with no binding
+  restriction at all - a real finding from an external review of this
+  repo, fixed here.
+- **The agent-enrollment and event-collection ports aren't even used**
+  by this repo's own tests - `tests/run_tests.py` only ever `docker exec`s
+  into the container. They're published purely so a curious reader can
+  connect a real agent or hit the API locally. If you don't need that,
+  delete the `ports:` block entirely for zero attack surface.
+- **1514 is published as TCP, not UDP.** Wazuh's default secure
+  agent<->manager channel is TCP (see
+  [`remote` in the ossec.conf reference](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/remote.html)) -
+  an earlier version of this file published `1514/udp`, which means a
+  real agent following this project's own README would never have
+  connected. Also a real finding from that review.
+- **Default credentials are not changed here.** Before this manager is
+  reachable by anyone but you - even on localhost, on a shared host -
+  follow [Securing the Wazuh server API](https://documentation.wazuh.com/current/user-manual/api/securing-api.html)
+  and [Changing the default password](https://documentation.wazuh.com/current/deployment-options/docker/changing-default-password.html)
+  first. This repo doesn't do it for you because there's no safe default
+  password to ship in a public git history.
+- **CDB lists are staged read-only, not bind-mounted read-write.**
+  Wazuh needs to write a compiled `.cdb` next to each list's source, so
+  `/var/ossec/etc/lists` has to be writable at runtime - but a
+  read-write bind mount would mean a compromised manager process could
+  edit the *source* allow-list too, and have that edit land directly in
+  this repo's working tree on the host. `docker-compose.yml` mounts the
+  lists read-only at a staging path instead
+  (`./lists:/wazuh-lab/lists-src:ro`), and `scripts/bootstrap_manager.sh`
+  copies them into the container's own writable filesystem - any runtime
+  write, malicious or not, stays inside the container and is gone on the
+  next `docker compose up`.
+
+What's *not* fixed, and won't be by tightening this compose file further:
+`lists/lsass-access-allowlist` is path-based (see its own header comment
+and `docs/detections/100910-lsass-credential-access.md` "Future work") -
+that's a detection-logic tradeoff, not a deployment misconfiguration, and
+narrowing network exposure doesn't touch it.

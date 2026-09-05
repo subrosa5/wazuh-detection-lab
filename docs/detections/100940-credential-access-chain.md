@@ -47,6 +47,18 @@ sets its three stages 30-90 seconds apart and `tests/run_tests.py` feeds
 them to one `wazuh-logtest` session back-to-back - so the correlation
 window is satisfied by the data, and CI runs in seconds, not minutes.
 
+The positive path alone only proves the chain *can* escalate, not that
+`timeframe="300"` is actually enforced as a boundary rather than just
+decoration - a suite that only ever exercises the happy path can't tell
+a real 5-minute window from an accidental unbounded one.
+`tests/samples/100940_chain_sequence_timeout.json` is the negative case:
+injection followed by an LSASS dump 10 minutes later. Both atomic rules
+(`100921`, `100912`) still fire independently - injection is still
+injection on its own merits - but `100941` must **not** fire, because
+the correlation window on its precursor has expired.
+`tests/test_manifest.json`'s `credential-access-chain-timeframe-expired`
+case asserts exactly that.
+
 ## Known limitations
 
 - All three stages are keyed to `win.system.computer` implicitly, via

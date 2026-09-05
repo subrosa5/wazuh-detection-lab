@@ -13,6 +13,13 @@ on:
   push:
     branches: [main]
 
+# Default token grant is read-only: this workflow never needs to write
+# to the repo (no auto-commits, no PR comments), so it doesn't get the
+# permission to. Narrow the block further per-job if a future job needs
+# something this one doesn't.
+permissions:
+  contents: read
+
 # This is the quality gate the whole repo is built around: a rule/decoder
 # change cannot merge unless it (a) is well-formed, (b) doesn't collide
 # with another local rule ID, and (c) proves itself against a live
@@ -25,7 +32,12 @@ jobs:
   test-rules:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned by commit SHA, not the mutable v4 tag - a compromised or
+      # re-tagged v4 can't silently run different code in this pipeline.
+      # Re-pin deliberately when bumping: resolve the tag's current SHA
+      # (e.g. `gh api repos/actions/checkout/commits/v4 --jq .sha`) and
+      # update both the SHA and the version comment together.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Validate rule/decoder XML is well-formed
         run: python3 scripts/validate_xml.py
@@ -62,7 +74,7 @@ jobs:
           git diff --exit-code -- docs/mitre-coverage.md docs/mitre-coverage.json \
             || { echo "::error::docs/mitre-coverage.* is stale - run scripts/generate_mitre_navigator_layer.py and commit the result"; exit 1; }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: mitre-coverage-layer

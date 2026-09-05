@@ -10,22 +10,31 @@ Mirrors (independently of) the intent of Wazuh's own official
 in a dev branch against main. This version is self-contained: it only
 needs the checked-out repo, no second branch to diff against, so it also
 catches an in-PR collision between two new files.
+
+Parses the XML properly (ElementTree, wrapped in a synthetic root the
+same way scripts/validate_xml.py does) rather than regex-matching
+`<rule id="...">` - a regex anchored on attribute order would silently
+miss a perfectly valid `<rule level="10" id="100900">`.
 """
-import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ID_RE = re.compile(r'<rule\s+id="(\d+)"')
 RULES_DIR = Path(__file__).parent.parent / "rules"
 RESERVED_LOW, RESERVED_HIGH = 100000, 119999
 
 
+def rule_ids(path: Path) -> list:
+    root = ET.fromstring(f"<_root>\n{path.read_text()}\n</_root>")
+    return [rule.get("id") for rule in root.iter("rule") if rule.get("id") is not None]
+
+
 def main() -> int:
-    seen: dict[str, str] = {}
-    out_of_range: list[tuple[str, str]] = []
+    seen: dict = {}
+    out_of_range: list = []
 
     for path in sorted(RULES_DIR.glob("*.xml")):
-        for rid in ID_RE.findall(path.read_text()):
+        for rid in rule_ids(path):
             if rid in seen:
                 print(f"::error::duplicate rule id {rid} in {path.name} (first seen in {seen[rid]})")
                 return 1

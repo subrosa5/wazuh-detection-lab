@@ -11,7 +11,7 @@
     {
       "techniqueID": "T1003.001",
       "score": 1,
-      "comment": "100910: Sysmon: process opened a handle to lsass.exe ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100912: Possible credential dumping: $(win.eventdata.sourceImage) opened lsass.exe with GrantedAccess=$(win.eventdata.grantedAccess) (mask consistent with Mimikatz/ProcDump-style memory read); 100913: Unrecognized process accessed lsass.exe: $(win.eventdata.sourceImage) (GrantedAccess=$(win.eventdata.grantedAccess)) - not a known dumping mask, review; 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host within 5 minutes - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
+      "comment": "100910: Sysmon: process opened a handle to lsass.exe ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100912: Possible credential dumping: $(win.eventdata.sourceImage) opened lsass.exe with GrantedAccess=$(win.eventdata.grantedAccess) (mask consistent with Mimikatz/ProcDump-style memory read); 100913: Unrecognized process accessed lsass.exe: $(win.eventdata.sourceImage) (GrantedAccess=$(win.eventdata.grantedAccess)) - not a known dumping mask, review; 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
     },
     {
       "techniqueID": "T1027",
@@ -21,7 +21,7 @@
     {
       "techniqueID": "T1055",
       "score": 1,
-      "comment": "100920: Sysmon: remote thread created ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100922: Remote thread created in a sensitive system process: $(win.eventdata.sourceImage) -> $(win.eventdata.targetImage); 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host within 5 minutes - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
+      "comment": "100920: Sysmon: remote thread created ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100922: Remote thread created in a sensitive system process: $(win.eventdata.sourceImage) -> $(win.eventdata.targetImage); 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
     },
     {
       "techniqueID": "T1055.001",

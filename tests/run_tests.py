@@ -88,14 +88,18 @@ def main() -> int:
 
         expect = set(case.get("expect_rules", []))
         forbid = set(case.get("forbid_rules", []))
+        any_of = set(case.get("expect_any_of", []))
 
         missing = expect - got
         unexpected = forbid & got
-        ok = not missing and not unexpected
+        missing_any_of = bool(any_of) and got.isdisjoint(any_of)
+        ok = not missing and not unexpected and not missing_any_of
 
         print(f"[{'PASS' if ok else 'FAIL'}] {case['name']} - {case['description']}")
         if missing:
             print(f"         missing expected rule(s): {sorted(missing)}")
+        if missing_any_of:
+            print(f"         none of the acceptable rule(s) fired: {sorted(any_of)}")
         if unexpected:
             print(f"         unexpectedly fired forbidden rule(s): {sorted(unexpected)}")
         print(f"         rules observed: {sorted(got)}")

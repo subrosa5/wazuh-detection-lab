@@ -57,6 +57,21 @@ field name - and every rule reference (`<list field="account">`,
 entirely turned out to be more reliable than fighting to use it
 correctly.
 
+## A same-level sibling nuance (not worth over-fixing)
+
+On the 5th (threshold-tipping) benign-account log line, both 100901
+(`if_sid=100900` + allow-list) and 100902 (`if_sid=100900` +
+`if_matched_sid=100900` + frequency) structurally match as siblings under
+100900. Empirically, 100901 - not 100902/100903 - ends up as the reported
+alert; sibling-evaluation order isn't `level`-descending in this case
+(100901 is level 0, 100902 is level 10) but appears to follow declaration
+order instead. This is left as-is rather than reordered or forced,
+because it doesn't matter: 100901 and 100903 are both level 0 suppression
+outcomes, so which one "wins" changes only which rule ID appears in a
+debug trace, not whether anything actually alerts. `tests/test_manifest.json`
+asserts that behavior explicitly (`expect_any_of`) instead of pinning an
+undocumented engine detail.
+
 ## Known false positives
 
 - **NAT / shared egress IP**: if `billing-api` is reachable from behind

@@ -28,6 +28,24 @@ app's auth log and the rest of the pattern holds.
    username also catches password-spraying (many usernames, one
    source), not just classic single-account brute force.
 
+## Caught by CI, not by review
+
+The decoder's `<order>` originally named the fourth captured group `user`.
+`wazuh-logtest`'s Phase 2 field dump showed it decoded as `dstuser`
+instead - Wazuh silently maps `user` to the static `dstuser` field rather
+than creating a distinct dynamic field with that name. The rules'
+`<list field="user">` lookups and `$(user)` description placeholders were
+therefore referencing a field that didn't exist: the CDB allow-list check
+silently never matched anything, and every alert description rendered
+`for user  from ...` with the name missing. Nothing in this failed loudly
+- it just quietly did the wrong thing, which is worse. `tests/run_tests.py`
+caught it because the test manifest asserts *which rule IDs* fire, and a
+non-functioning allow-list would eventually have shown up as a failed
+suppression test - but it was actually spotted directly in the raw
+`wazuh-logtest` field dump while debugging an unrelated harness bug. Fixed
+by using `dstuser` explicitly throughout instead of relying on an
+undocumented alias.
+
 ## Known false positives
 
 - **NAT / shared egress IP**: if `billing-api` is reachable from behind

@@ -21,7 +21,7 @@
     <decoded_as>custom-app-auth</decoded_as>
     <field name="event_type">^login_failed$</field>
     <options>no_full_log</options>
-    <description>billing-api: failed login for user $(user) from $(srcip)</description>
+    <description>billing-api: failed login for user $(dstuser) from $(srcip)</description>
     <mitre>
       <id>T1110</id>
     </mitre>
@@ -31,9 +31,9 @@
   <!-- Suppress noise from known automation accounts (health checks, sync jobs) -->
   <rule id="100901" level="0">
     <if_sid>100900</if_sid>
-    <list field="user" lookup="match_key">etc/lists/app-auth-service-accounts</list>
+    <list field="dstuser" lookup="match_key">etc/lists/app-auth-service-accounts</list>
     <options>no_full_log</options>
-    <description>billing-api: failed login by allow-listed service account $(user) - suppressed</description>
+    <description>billing-api: failed login by allow-listed service account $(dstuser) - suppressed</description>
   </rule>
 
   <!-- 5 failed logins from the same source IP within 2 minutes, correlated
@@ -57,9 +57,9 @@
        a credential rotation), suppress the correlation alert too. -->
   <rule id="100903" level="0">
     <if_sid>100902</if_sid>
-    <list field="user" lookup="match_key">etc/lists/app-auth-service-accounts</list>
+    <list field="dstuser" lookup="match_key">etc/lists/app-auth-service-accounts</list>
     <options>no_full_log</options>
-    <description>billing-api: 5+ failed logins by allow-listed service account $(user) from $(srcip) - suppressed</description>
+    <description>billing-api: 5+ failed logins by allow-listed service account $(dstuser) from $(srcip) - suppressed</description>
   </rule>
 
 </group>

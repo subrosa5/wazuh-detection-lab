@@ -21,7 +21,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-RULE_RE = re.compile(r"Rule:?\s*'?(\d{3,6})'?\s*\(level\s*(\d+)\)", re.IGNORECASE)
+# Calibrated against real wazuh-logtest 4.14.7 output (Phase 3 prints
+# `\tid: '100900'` on its own line inside each fired rule's block, not
+# the "Rule: NNNN (level N)" format this repo's first draft assumed and
+# CI immediately proved wrong - see git history / README "Honest gaps".
+RULE_ID_RE = re.compile(r"^\s*id:\s*'(\d+)'\s*$", re.MULTILINE)
 TESTS_DIR = Path(__file__).parent
 MANIFEST = TESTS_DIR / "test_manifest.json"
 
@@ -44,7 +48,7 @@ def run_logtest(container: str, lines: list[str]) -> str:
 
 
 def matched_rules(output: str) -> set[int]:
-    return {int(m.group(1)) for m in RULE_RE.finditer(output)}
+    return {int(m.group(1)) for m in RULE_ID_RE.finditer(output)}
 
 
 def load_lines(case: dict) -> list[str]:

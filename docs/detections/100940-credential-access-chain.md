@@ -5,7 +5,7 @@
 | **Rule file** | `rules/100940-credential-access-chain.xml` |
 | **MITRE ATT&CK** | T1055 -> T1003.001 -> T1059.001 |
 | **Depends on** | `100920-process-injection.xml` (rule 100921), `100910-lsass-credential-access.xml` (rule 100912), `100930-powershell-suspicious.xml` (rule 100931) |
-| **Tests** | `tests/samples/100940_chain_sequence.json` (3-stage escalation), `tests/samples/100940_chain_sequence_timeout.json` (stages 10 minutes apart - documents that the chain still fires, see below) |
+| **Tests** | `tests/samples/100940_chain_sequence.json` (3-stage escalation), `tests/samples/100940_chain_sequence_timeout.json` (embedded `systemTime` 10 minutes apart - see below for why that gap is narrative, not something the rule or the test actually waits on) |
 
 ## Why this rule exists
 
@@ -14,8 +14,8 @@ Every rule above it alerts on one atomic technique in isolation. A single
 own it's exactly the kind of thing that gets a "known FP, tuned it out"
 shrug three weeks into a role (see the FP discussion in
 `100910-lsass-credential-access.md`). Stacking three independent,
-individually-plausible-to-dismiss detections into one host-scoped,
-time-boxed chain is what turns "here's a pile of medium alerts" into
+individually-plausible-to-dismiss detections into one host-scoped chain
+is what turns "here's a pile of medium alerts" into
 "here's one alert an analyst should actually act on at 2am". This is the
 difference between writing rules and doing detection *engineering*.
 
@@ -83,11 +83,13 @@ README) and the rule engine, per the above, is not.
   Wazuh's default per-agent correlation scope - this chain does **not**
   currently constrain on `sourceProcessGUID` matching across stages 1
   and 2 (i.e. it would also fire if two *different* processes on the
-  same host independently did injection and LSASS access within the
-  window). For a first alarm that pages someone, that's an acceptable
-  trade-off toward recall; a v2 could tighten precision by carrying
-  `sourceProcessGUID` through as a correlated field once real traffic
-  volume justifies the extra complexity.
+  same host independently did injection and LSASS access, at any point
+  in the session - see "No time bound" above). For a first alarm that
+  pages someone, that's an acceptable trade-off toward recall; a v2
+  could tighten precision by carrying `sourceProcessGUID` through as a
+  correlated field once real traffic volume justifies the extra
+  complexity - and would matter more here specifically, since there's no
+  time window narrowing the pool of candidate precursor events either.
 - Depends on all three prerequisite rules being enabled and their
   upstream data sources (Sysmon, PowerShell Script Block Logging)
   actually configured - see each rule's own doc for prerequisites.

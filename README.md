@@ -114,9 +114,11 @@ Expected output: `PASSED: all 9 test case(s).` (verified green in CI -
 see [Actions](https://github.com/subrosa5/wazuh-detection-lab/actions)
 for the current run; getting there took several real bug-hunting rounds,
 see "Honest gaps" below - left in the commit history on purpose).
-Everything this compose file publishes is bound to `127.0.0.1` only - see
-[`docs/architecture.md`](docs/architecture.md) "Security posture of this
-compose file" before running this anywhere but your own machine.
+This compose file publishes no ports at all by default - nothing here
+needs the network, only `docker exec`. Want to connect a real agent or
+hit the API/dashboard locally? See `docker-compose.override.yml.example`
+and [`docs/architecture.md`](docs/architecture.md) "Security posture of
+this compose file" first.
 
 To poke at a rule interactively:
 

@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 *.cdb
 .env
+docker-compose.override.yml

@@ -99,30 +99,28 @@ was reviewed as if it might get exposed anyway, since "it's just a demo"
 is exactly the kind of thing that ends up reachable from the internet by
 accident. Concretely:
 
-- **Every published port is bound to `127.0.0.1` only** (`docker-compose.yml`).
-  Nothing here is reachable from the network by default, let alone the
-  internet - not the manager API (`55000`), not agent enrollment
-  (`1515`), not event collection (`1514`). An earlier version of this
-  file published those ports on all interfaces with no binding
-  restriction at all - a real finding from an external review of this
-  repo, fixed here.
-- **The agent-enrollment and event-collection ports aren't even used**
-  by this repo's own tests - `tests/run_tests.py` only ever `docker exec`s
-  into the container. They're published purely so a curious reader can
-  connect a real agent or hit the API locally. If you don't need that,
-  delete the `ports:` block entirely for zero attack surface.
-- **1514 is published as TCP, not UDP.** Wazuh's default secure
-  agent<->manager channel is TCP (see
-  [`remote` in the ossec.conf reference](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/remote.html)) -
-  an earlier version of this file published `1514/udp`, which means a
-  real agent following this project's own README would never have
-  connected. Also a real finding from that review.
-- **Default credentials are not changed here.** Before this manager is
-  reachable by anyone but you - even on localhost, on a shared host -
-  follow [Securing the Wazuh server API](https://documentation.wazuh.com/current/user-manual/api/securing-api.html)
-  and [Changing the default password](https://documentation.wazuh.com/current/deployment-options/docker/changing-default-password.html)
-  first. This repo doesn't do it for you because there's no safe default
-  password to ship in a public git history.
+- **No ports are published at all, by default.** `docker-compose.yml`
+  has no `ports:` block - `tests/run_tests.py` and `scripts/bootstrap_manager.sh`
+  only ever `docker exec` into the container, and never touch the
+  network, so there is nothing to publish for this repo's own purposes.
+  Two earlier, weaker versions of this were reviewed and rejected in
+  order: first, no binding restriction at all (every port open on every
+  interface); then `127.0.0.1`-only binding - better, but a loopback
+  bind still leaves the manager, and its unchanged default API/enrollment
+  credentials, reachable to every other process and user on the same
+  machine, which is a real question on a shared host. Not publishing
+  anything sidesteps it entirely instead of trusting a bind address to
+  answer it. Want to connect a real agent or hit the API/dashboard
+  locally anyway? Copy `docker-compose.override.yml.example` to
+  `docker-compose.override.yml` (already git-ignored) - it publishes the
+  same three ports, loopback-only, with the credential-hardening steps
+  spelled out first.
+- **1514, if you do publish it, should be TCP, not UDP.** Wazuh's default
+  secure agent<->manager channel is TCP (see
+  [`remote` in the ossec.conf reference](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/remote.html)).
+  An earlier version of this file published `1514/udp` - a real agent
+  following this project's own README would never have connected.
+  `docker-compose.override.yml.example` publishes it correctly.
 - **CDB lists are staged read-only, not bind-mounted read-write.**
   Wazuh needs to write a compiled `.cdb` next to each list's source, so
   `/var/ossec/etc/lists` has to be writable at runtime - but a

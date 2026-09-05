@@ -120,11 +120,12 @@ python3 tests/run_tests.py                  # прогоняет весь наб
 Ожидаемый вывод: `PASSED: all 9 test case(s).` (подтверждено зелёным в
 [Actions](https://github.com/subrosa5/wazuh-detection-lab/actions) — до
 этого потребовалось несколько раундов реального поиска багов, см. раздел
-«Честные пробелы» ниже — оставлено в истории коммитов намеренно). Всё,
-что публикует этот compose-файл, привязано только к `127.0.0.1` — см.
-[`docs/architecture.md`](docs/architecture.md), раздел «Security posture
-of this compose file», прежде чем запускать это где-либо, кроме своей
-машины.
+«Честные пробелы» ниже — оставлено в истории коммитов намеренно). Этот
+compose-файл по умолчанию вообще не публикует портов — ничему здесь не
+нужна сеть, только `docker exec`. Хотите подключить реального агента или
+локально дёрнуть API/дашборд? Смотрите `docker-compose.override.yml.example`
+и [`docs/architecture.md`](docs/architecture.md), раздел «Security
+posture of this compose file».
 
 Чтобы поковырять правило интерактивно:
 

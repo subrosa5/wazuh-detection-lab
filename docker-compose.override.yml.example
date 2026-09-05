@@ -1,0 +1,22 @@
+# Optional: publish ports for local exploration (connecting a real agent,
+# poking the REST API, etc). Not needed for anything this repo's own
+# tests do - see the SECURITY POSTURE comment at the top of
+# docker-compose.yml for why nothing is published by default.
+#
+# To use: copy this file to docker-compose.override.yml (already
+# git-ignored - it won't get committed) and run `docker compose up -d`
+# as usual; Compose merges override files automatically. Then, before
+# connecting anything real to it:
+#
+#   1. Change the default API/agent-enrollment credentials - see
+#      https://documentation.wazuh.com/current/user-manual/api/securing-api.html
+#      and https://documentation.wazuh.com/current/deployment-options/docker/changing-default-password.html
+#   2. Only then consider widening the bind address below past
+#      127.0.0.1 - and even then, prefer a firewall rule / security
+#      group over trusting this compose file to do it for you.
+services:
+  wazuh-manager:
+    ports:
+      - "127.0.0.1:1514:1514"      # agent event collection (TCP - Wazuh's default secure channel)
+      - "127.0.0.1:1515:1515"      # agent enrollment (authd)
+      - "127.0.0.1:55000:55000"    # REST API

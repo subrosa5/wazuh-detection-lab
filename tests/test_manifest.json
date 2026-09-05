@@ -61,14 +61,14 @@
       "type": "sequence",
       "sample": "samples/100940_chain_sequence.json",
       "expect_rules": [100921, 100941, 100942],
-      "description": "injection -> LSASS dump -> suspicious PowerShell within 5-minute windows must escalate all the way to the level-15 incident rule (one rule id per stage - each is the most specific match for its own event)."
+      "description": "injection -> LSASS dump -> suspicious PowerShell must escalate all the way to the level-15 incident rule (one rule id per stage - each is the most specific match for its own event). No timeframe/frequency is set on 100941/100942 - see rules/100940-credential-access-chain.xml header comment for why - so this only proves the three stages escalate in order, not that any time window is enforced."
     },
     {
       "name": "credential-access-chain-fires-without-time-bound",
       "type": "sequence",
       "sample": "samples/100940_chain_sequence_timeout.json",
       "expect_rules": [100921, 100941],
-      "description": "Regression test for a documented engine limitation, not a boundary check: this repo originally expected a 10-minute gap between injection and LSASS dump to NOT escalate to rule 100941 (a real 5-minute timeframe). It does escalate anyway - Wazuh's if_matched_sid only supports a true time-bounded window when paired with frequency>=2 (volumetric correlation), which doesn't fit a single-occurrence chain like this one. See the header comment in rules/100940-credential-access-chain.xml for the two rounds of real CI failure that established this. This test asserts the actual, current behavior (fires regardless of gap) so a future change that accidentally narrows it doesn't go unnoticed."
+      "description": "Regression test for a documented engine limitation, not a timing/boundary check - this sample's two events are fed to wazuh-logtest back-to-back (no real delay between them: see tests/run_tests.py), with embedded systemTime values 10 minutes apart purely for narrative clarity. That distinction matters here: 100941/100942 carry no timeframe attribute at all (removed after two rounds of real CI failure - see rules/100940-credential-access-chain.xml header comment), so if_matched_sid evaluates neither wall-clock delay nor embedded timestamps, only whether the referenced rule has matched at any point in this session. This test asserts exactly that - the chain still escalates - so a future change that accidentally reintroduces an unenforceable timeframe doesn't go unnoticed."
     }
   ]
 }

@@ -12,17 +12,17 @@
 # "Security posture of this compose file" for the full writeup and why
 # each of these matters):
 #   - image pinned by digest, not a mutable tag (see the comment below)
-#   - every published port is bound to 127.0.0.1 only - nothing here is
-#     reachable from the network, let alone the internet, by default
-#   - the agent-enrollment/event-collection ports below are not even used
-#     by this repo's own tests (which only ever `docker exec` into the
-#     container) - they're published purely so a curious reader can
-#     connect a real agent or hit the API locally if they want to; if you
-#     don't need that, delete the `ports:` block entirely for a smaller
-#     attack surface
-#   - default API/agent-enrollment credentials are NOT changed here -
-#     do that yourself (documentation.wazuh.com "Securing the Wazuh
-#     server API") before this is reachable by anyone but you
+#   - NO ports are published at all. This repo's own tests only ever
+#     `docker exec` into the container (see tests/run_tests.py), and
+#     never touch the network - so the smallest attack surface is simply
+#     none. A loopback-only bind still leaves the manager (and its
+#     default API/enrollment credentials) reachable to every other
+#     process and user on the same machine, which matters on a shared
+#     host - not publishing anything sidesteps that question entirely.
+#     Want to connect a real agent or hit the API/dashboard locally?
+#     Copy docker-compose.override.yml.example to
+#     docker-compose.override.yml (git-ignored) and change the default
+#     credentials first - see the file for exact steps.
 #   - CDB lists are staged read-only and copied into the container's own
 #     writable layer rather than bind-mounted read-write - a compromised
 #     manager process can still edit its own runtime list, but that edit
@@ -38,14 +38,6 @@ services:
     container_name: wazuh-manager
     hostname: wazuh-manager
     restart: unless-stopped
-    ports:
-      # Default secure agent<->manager channel is TCP, not UDP - see
-      # documentation.wazuh.com "remote" (ossec.conf reference). An
-      # earlier version of this file published 1514/udp, which is the
-      # wrong protocol for a real agent to ever connect on; fixed here.
-      - "127.0.0.1:1514:1514"      # agent event collection (TCP)
-      - "127.0.0.1:1515:1515"      # agent enrollment (authd)
-      - "127.0.0.1:55000:55000"    # REST API - not used by the test harness, exposed for manual use
     volumes:
       - ./rules:/var/ossec/etc/rules:ro
       - ./decoders:/var/ossec/etc/decoders:ro

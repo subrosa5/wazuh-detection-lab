@@ -1,0 +1,39 @@
+<!--
+  Detection: Suspicious PowerShell ScriptBlock Execution (Event ID 4104)
+  MITRE ATT&CK: T1059.001 (PowerShell), T1027 (Obfuscated Files or Information)
+
+  Deliberately NOT chained via <if_group> to a default-ruleset parent: no
+  stable, version-independent PowerShell group name could be confirmed in
+  research for this repo (unlike the Sysmon groups, which were verified
+  against wazuh-ruleset source). Matching directly on win.system.channel +
+  win.system.eventID is slightly more verbose but doesn't assert something
+  unverified. Requires PowerShell Script Block Logging enabled via GPO
+  (Administrative Templates > Windows Components > PowerShell) and the
+  channel forwarded via Sysmon/WEC or the Wazuh agent's <location>
+  Microsoft-Windows-PowerShell/Operational</location>.
+-->
+<group name="local,execution,windows,powershell,">
+
+  <rule id="100930" level="3">
+    <field name="win.system.channel">^Microsoft-Windows-PowerShell/Operational$</field>
+    <field name="win.system.eventID">^4104$</field>
+    <options>no_full_log</options>
+    <description>PowerShell ScriptBlock logged (Path=$(win.eventdata.path))</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>powershell_scriptblock,</group>
+  </rule>
+
+  <rule id="100931" level="10">
+    <if_sid>100930</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(-enc(odedcommand)?\s|frombase64string|-nop\s|-noni\s|-w(indowstyle)?\s+hidden|iex\s*\(|invoke-expression|downloadstring|reflection\.assembly)</field>
+    <description>Suspicious PowerShell ScriptBlock: obfuscation / download-cradle indicators present</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+    <group>powershell_scriptblock,suspicious_powershell,</group>
+  </rule>
+
+</group>

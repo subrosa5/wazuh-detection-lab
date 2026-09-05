@@ -1,0 +1,36 @@
+{
+  "win": {
+    "system": {
+      "providerName": "Microsoft-Windows-Sysmon",
+      "providerGuid": "{5770385f-c22a-43e0-bf4c-06f5698ffbd9}",
+      "eventID": "8",
+      "version": "5",
+      "level": "4",
+      "task": "8",
+      "opcode": "0",
+      "keywords": "0x8000000000000000",
+      "systemTime": "2026-09-05T10:14:32.900Z",
+      "eventRecordID": "48199",
+      "processID": "1288",
+      "threadID": "2044",
+      "channel": "Microsoft-Windows-Sysmon/Operational",
+      "computer": "WIN-DC01.corp.local",
+      "severityValue": "INFORMATION",
+      "message": "CreateRemoteThread detected:"
+    },
+    "eventdata": {
+      "ruleName": "-",
+      "utcTime": "2026-09-05 10:14:32.900",
+      "sourceProcessGUID": "{9f2a1e3c-3a4a-6710-0301-000000001100}",
+      "sourceProcessId": "6620",
+      "sourceImage": "C:\\Windows\\Temp\\update.exe",
+      "targetProcessGUID": "{9f2a1e3c-0800-6710-0000-000000000800}",
+      "targetProcessId": "2244",
+      "targetImage": "C:\\Windows\\System32\\svchost.exe",
+      "newThreadId": "9981",
+      "startAddress": "0x000001FA2C3D0000",
+      "startModule": "",
+      "startFunction": ""
+    }
+  }
+}

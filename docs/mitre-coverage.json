@@ -1,0 +1,56 @@
+{
+  "name": "Wazuh Detection Lab Coverage",
+  "versions": {
+    "attack": "17",
+    "navigator": "5.1.0",
+    "layer": "4.5"
+  },
+  "domain": "enterprise-attack",
+  "description": "Auto-generated from rules/*.xml <mitre> tags - see scripts/generate_mitre_navigator_layer.py",
+  "techniques": [
+    {
+      "techniqueID": "T1003.001",
+      "score": 1,
+      "comment": "100910: Sysmon: process opened a handle to lsass.exe ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100912: Possible credential dumping: $(win.eventdata.sourceImage) opened lsass.exe with GrantedAccess=$(win.eventdata.grantedAccess) (mask consistent with Mimikatz/ProcDump-style memory read); 100913: Unrecognized process accessed lsass.exe: $(win.eventdata.sourceImage) (GrantedAccess=$(win.eventdata.grantedAccess)) - not a known dumping mask, review; 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host within 5 minutes - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
+    },
+    {
+      "techniqueID": "T1027",
+      "score": 1,
+      "comment": "100931: Suspicious PowerShell ScriptBlock: obfuscation / download-cradle indicators present"
+    },
+    {
+      "techniqueID": "T1055",
+      "score": 1,
+      "comment": "100920: Sysmon: remote thread created ($(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)); 100922: Remote thread created in a sensitive system process: $(win.eventdata.sourceImage) -> $(win.eventdata.targetImage); 100941: Credential access chain: process injection (rule 100921) followed by LSASS memory access (rule 100912) on the same host within 5 minutes - high-confidence credential dumping; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
+    },
+    {
+      "techniqueID": "T1055.001",
+      "score": 1,
+      "comment": "100921: Possible shellcode injection: $(win.eventdata.sourceImage) created a remote thread in $(win.eventdata.targetImage) with no backing module (StartAddress=$(win.eventdata.startAddress))"
+    },
+    {
+      "techniqueID": "T1059.001",
+      "score": 1,
+      "comment": "100930: PowerShell ScriptBlock logged (Path=$(win.eventdata.path)); 100931: Suspicious PowerShell ScriptBlock: obfuscation / download-cradle indicators present; 100942: Full credential access + staging chain: injection -> LSASS dump -> suspicious PowerShell on the same host - treat as active incident"
+    },
+    {
+      "techniqueID": "T1110",
+      "score": 1,
+      "comment": "100900: billing-api: failed login for user $(user) from $(srcip); 100902: billing-api: possible brute-force / password spraying - 5+ failed logins from $(srcip) in 120 seconds"
+    }
+  ],
+  "gradient": {
+    "colors": [
+      "#ffffff",
+      "#66b1ff"
+    ],
+    "minValue": 0,
+    "maxValue": 1
+  },
+  "legendItems": [
+    {
+      "label": "Covered by a custom rule in this repo",
+      "color": "#66b1ff"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "win": {
+    "system": {
+      "providerName": "Microsoft-Windows-PowerShell",
+      "providerGuid": "{a0c1853b-5c40-4b15-8766-3cf1c58f985a}",
+      "eventID": "4104",
+      "version": "1",
+      "level": "5",
+      "task": "2",
+      "opcode": "15",
+      "keywords": "0x0",
+      "systemTime": "2026-09-05T08:05:00.000Z",
+      "eventRecordID": "90501",
+      "processID": "5588",
+      "threadID": "5612",
+      "channel": "Microsoft-Windows-PowerShell/Operational",
+      "computer": "WIN-DC01.corp.local",
+      "severityValue": "INFORMATION",
+      "message": "Creating Scriptblock text"
+    },
+    "eventdata": {
+      "messageNumber": "1",
+      "messageTotal": "1",
+      "scriptBlockText": "Get-ADUser -Filter {Enabled -eq $false} | Select-Object Name,SamAccountName | Export-Csv C:\\Reports\\disabled_users.csv",
+      "scriptBlockId": "11223344-5566-4a3b-9e21-abc123456789",
+      "path": "C:\\Scripts\\disabled_users_report.ps1"
+    }
+  }
+}

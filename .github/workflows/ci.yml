@@ -1,0 +1,74 @@
+name: detection-ci
+
+on:
+  pull_request:
+    paths:
+      - "rules/**"
+      - "decoders/**"
+      - "lists/**"
+      - "tests/**"
+      - "scripts/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+
+# This is the quality gate the whole repo is built around: a rule/decoder
+# change cannot merge unless it (a) is well-formed, (b) doesn't collide
+# with another local rule ID, and (c) proves itself against a live
+# wazuh-manager via wazuh-logtest - both on its attack sample and its
+# paired benign sample. Notably, this goes a step further than Wazuh's
+# own official Ruleset-as-Code pipeline, which validates rule ID
+# uniqueness but (per their public writeup) does not run wazuh-logtest
+# in CI: https://wazuh.com/blog/wazuh-ruleset-as-code-rac/
+jobs:
+  test-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate rule/decoder XML is well-formed
+        run: python3 scripts/validate_xml.py
+
+      - name: Check for duplicate / out-of-range rule IDs
+        run: python3 scripts/check_rule_ids.py
+
+      - name: Start Wazuh manager
+        run: docker compose up -d
+
+      - name: Wait for manager container health check
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            status="$(docker inspect --format='{{.State.Health.Status}}' wazuh-manager 2>/dev/null || echo starting)"
+            echo "attempt $i: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 5
+          done
+          echo "::error::wazuh-manager never became healthy"
+          docker logs wazuh-manager --tail 200
+          exit 1
+
+      - name: Register CDB lists and restart analysisd
+        run: bash scripts/bootstrap_manager.sh wazuh-manager
+
+      - name: Run detection regression tests
+        run: python3 tests/run_tests.py --container wazuh-manager
+
+      - name: Manager logs (on failure)
+        if: failure()
+        run: docker logs wazuh-manager --tail 300
+
+      - name: Regenerate MITRE coverage layer
+        run: python3 scripts/generate_mitre_navigator_layer.py
+
+      - name: Fail if generated MITRE coverage is out of date
+        run: |
+          git diff --exit-code -- docs/mitre-coverage.md docs/mitre-coverage.json \
+            || { echo "::error::docs/mitre-coverage.* is stale - run scripts/generate_mitre_navigator_layer.py and commit the result"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mitre-coverage-layer
+          path: docs/mitre-coverage.json

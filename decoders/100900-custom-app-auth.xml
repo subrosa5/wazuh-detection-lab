@@ -1,0 +1,24 @@
+<!--
+  Custom decoder for the (synthetic) billing-api auth log - a key=value
+  application log format with no out-of-the-box Wazuh decoder. Demonstrates
+  the two-stage prematch -> parent/regex decoder pattern used throughout
+  the default ruleset.
+
+  Sample raw line:
+    2026-09-05T10:22:31Z app=billing-api event=login_failed user=jdoe src_ip=203.0.113.7 attempts=5 reason="invalid_password"
+
+  Configure in ossec.conf on the log-source host:
+    <localfile>
+      <log_format>syslog</log_format>
+      <location>/var/log/billing-api/auth.log</location>
+    </localfile>
+-->
+<decoder name="custom-app-auth">
+  <prematch>^\S+ app=\S+ event=\S+ user=</prematch>
+</decoder>
+
+<decoder name="custom-app-auth">
+  <parent>custom-app-auth</parent>
+  <regex type="pcre2">^(\S+) app=(\S+) event=(\S+) user=(\S+) src_ip=(\S+) attempts=(\d+) reason="([^"]*)"</regex>
+  <order>timestamp,app,event_type,user,srcip,attempts,reason</order>
+</decoder>

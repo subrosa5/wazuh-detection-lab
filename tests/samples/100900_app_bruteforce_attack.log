@@ -1,0 +1,5 @@
+2026-09-05T10:00:01Z app=billing-api event=login_failed user=jdoe src_ip=203.0.113.7 attempts=1 reason="invalid_password"
+2026-09-05T10:00:14Z app=billing-api event=login_failed user=jdoe src_ip=203.0.113.7 attempts=2 reason="invalid_password"
+2026-09-05T10:00:29Z app=billing-api event=login_failed user=admin src_ip=203.0.113.7 attempts=1 reason="invalid_password"
+2026-09-05T10:00:41Z app=billing-api event=login_failed user=root src_ip=203.0.113.7 attempts=1 reason="invalid_password"
+2026-09-05T10:00:58Z app=billing-api event=login_failed user=finance_svc src_ip=203.0.113.7 attempts=1 reason="invalid_password"

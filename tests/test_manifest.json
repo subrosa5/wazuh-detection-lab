@@ -1,0 +1,65 @@
+{
+  "tests": [
+    {
+      "name": "app-bruteforce-attack",
+      "type": "lines",
+      "sample": "samples/100900_app_bruteforce_attack.log",
+      "expect_rules": [100900, 100902],
+      "forbid_rules": [100901],
+      "description": "5 failed logins from one IP within 2 minutes must trigger the brute-force correlation rule."
+    },
+    {
+      "name": "app-bruteforce-benign-service-account",
+      "type": "lines",
+      "sample": "samples/100900_app_login_benign.log",
+      "expect_rules": [100900, 100901],
+      "forbid_rules": [100902],
+      "description": "Failed logins from an allow-listed automation account must be suppressed, not correlated as brute force."
+    },
+    {
+      "name": "lsass-mimikatz-attack",
+      "type": "single",
+      "sample": "samples/100910_lsass_mimikatz_attack.json",
+      "expect_rules": [100910, 100912],
+      "forbid_rules": [100911, 100913],
+      "description": "Non-allow-listed process reading LSASS with a Mimikatz-consistent access mask must hit the high-confidence rule."
+    },
+    {
+      "name": "lsass-defender-benign",
+      "type": "single",
+      "sample": "samples/100910_lsass_defender_benign.json",
+      "expect_rules": [100910, 100911],
+      "forbid_rules": [100912, 100913],
+      "description": "Windows Defender's legitimate LSASS access must be suppressed via the allow-list, not alert."
+    },
+    {
+      "name": "process-injection-shellcode",
+      "type": "single",
+      "sample": "samples/100920_process_injection_attack.json",
+      "expect_rules": [100920, 100921],
+      "description": "CreateRemoteThread with no backing module must trigger the shellcode-injection rule."
+    },
+    {
+      "name": "powershell-encoded-attack",
+      "type": "single",
+      "sample": "samples/100930_powershell_encoded_attack.json",
+      "expect_rules": [100930, 100931],
+      "description": "PowerShell ScriptBlock with -enc/-nop/-w hidden/download-cradle indicators must be flagged suspicious."
+    },
+    {
+      "name": "powershell-benign-admin-script",
+      "type": "single",
+      "sample": "samples/100930_powershell_benign.json",
+      "expect_rules": [100930],
+      "forbid_rules": [100931],
+      "description": "Ordinary signed admin scriptblock logging must not trip the suspicious-content rule."
+    },
+    {
+      "name": "credential-access-full-chain",
+      "type": "sequence",
+      "sample": "samples/100940_chain_sequence.json",
+      "expect_rules": [100921, 100941, 100942],
+      "description": "injection -> LSASS dump -> suspicious PowerShell within 5-minute windows must escalate all the way to the level-15 incident rule."
+    }
+  ]
+}

@@ -1,23 +1,11 @@
-# CDB list: known-legitimate LSASS accessors (by full image path).
-# Loaded via <list field="win.eventdata.sourceImage" lookup="match_key">
-# in rules/100910-lsass-credential-access.xml.
-#
-# KNOWN LIMITATION (documented on purpose, not hidden): this is path-based
-# allow-listing. It is trivially bypassed by DLL side-loading, binary
-# renaming, or replacing a legit binary. It only suppresses noise from
-# genuine, unmodified AV/EDR/OS components on a known-good baseline - it is
-# NOT a security boundary. A hardened version would key on Authenticode
-# signature thumbprint or SHA-256 (both available as Sysmon EID 10 fields
-# in recent Sysmon releases) instead of path. See docs/detections/100910-lsass-credential-access.md
-# "Future work" section.
-C:\Windows\System32\MsMpEng.exe:
-C:\Program Files\Windows Defender\MsMpEng.exe:
-C:\Program Files\Windows Defender Advanced Threat Protection\MsSense.exe:
-C:\Windows\System32\svchost.exe:
-C:\Windows\System32\wininit.exe:
-C:\Windows\System32\csrss.exe:
-C:\Windows\System32\winlogon.exe:
-C:\Windows\System32\services.exe:
-C:\Windows\System32\lsass.exe:
-C:\Windows\System32\WerFault.exe:
-C:\Windows\System32\taskmgr.exe:
+"C:\Windows\System32\MsMpEng.exe":
+"C:\Program Files\Windows Defender\MsMpEng.exe":
+"C:\Program Files\Windows Defender Advanced Threat Protection\MsSense.exe":
+"C:\Windows\System32\svchost.exe":
+"C:\Windows\System32\wininit.exe":
+"C:\Windows\System32\csrss.exe":
+"C:\Windows\System32\winlogon.exe":
+"C:\Windows\System32\services.exe":
+"C:\Windows\System32\lsass.exe":
+"C:\Windows\System32\WerFault.exe":
+"C:\Windows\System32\taskmgr.exe":

@@ -1,13 +1,27 @@
 # Wazuh Detection Lab
 
-A Detection-as-Code repository for Wazuh: custom rules, decoders and CDB
-lists that are proven against a real `wazuh-manager` via `wazuh-logtest`
-on every pull request, not just eyeballed once and shipped.
+A working example of **Detection Engineering** on [Wazuh](https://wazuh.com/) -
+the discipline of turning raw endpoint/network telemetry (Sysmon,
+PowerShell logging, application logs, syslog) into alerts a human should
+actually act on, instead of noise a human learns to ignore.
 
-The centerpiece is a 3-stage correlation rule that turns three
-individually-noisy detections (process injection -> LSASS memory access
--> suspicious PowerShell) into one high-confidence, host-scoped incident
-alert - see [`docs/detections/100940-credential-access-chain.md`](docs/detections/100940-credential-access-chain.md).
+Wazuh is a free, open-source SIEM/XDR platform: agents on endpoints ship
+logs to a manager, the manager's rule engine (`analysisd`) matches those
+logs against decoders and rules, and anything that matches becomes an
+alert. Writing a *good* rule - one with an acceptable false-positive
+rate, tied to a real attack technique, that survives contact with a real
+environment - is most of the actual job of a detection engineer, and it's
+also the part almost no public example demonstrates honestly. This repo
+tries to.
+
+Concretely: custom rules, decoders and CDB (allow/deny) lists for Wazuh,
+each one **proven against a real `wazuh-manager` via `wazuh-logtest` on
+every push** - not just written once and eyeballed. The centerpiece is a
+3-stage correlation rule that turns three individually-noisy detections
+(process injection -> LSASS memory access -> suspicious PowerShell) into
+one high-confidence, host-scoped incident alert - the kind of thing that
+separates "wrote a regex" from "designed a detection" - see
+[`docs/detections/100940-credential-access-chain.md`](docs/detections/100940-credential-access-chain.md).
 
 ## Why this repo exists
 
@@ -20,6 +34,43 @@ the attack sample or fires on the benign one. See
 [`docs/architecture.md`](docs/architecture.md) for how the pieces fit
 together and why specific tooling choices (manager-only Docker, CLI
 `wazuh-logtest` over the REST API) were made.
+
+## Where this kind of work applies
+
+Detection engineering isn't tied to one industry - anywhere that runs
+endpoints, servers, or applications and cares about being breached needs
+someone doing this job, in-house or through a vendor:
+
+- **SOC / MSSP / MDR providers** - this is literally the day job: writing
+  and tuning the detections a 24/7 analyst team triages against. The
+  false-positive discipline in `docs/detections/` (documented FP sources,
+  allow-lists, honest gaps) is what keeps an analyst team from drowning
+  and quitting.
+- **In-house enterprise security teams** (finance, healthcare, retail/
+  e-commerce, SaaS, government) building or tuning their own SIEM instead
+  of buying a fully-managed one - Wazuh specifically is popular here
+  because it's free at the core, unlike Splunk/Elastic's paid tiers.
+- **Regulated industries** (banking, healthcare, insurance) where
+  detective controls are an explicit requirement of PCI-DSS, HIPAA,
+  SOC 2, or ISO 27001 audits - a documented, tested ruleset like this is
+  literally the evidence an auditor asks for.
+- **Critical infrastructure and government** - credential-access and
+  process-injection detection (this repo's flagship chain) is exactly
+  the kind of pattern used against these targets by nation-state actors;
+  ATT&CK-mapped detections are the common language threat-intel-driven
+  defense is built on.
+- **Red/purple team and adversary-emulation work** - the
+  [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team)
+  references throughout `docs/detections/` are exactly what a purple
+  team uses to validate a detection actually fires, not just that it
+  looks plausible on paper.
+- **DevSecOps / platform engineering** - the CI pipeline here
+  (`.github/workflows/ci.yml`) is a template for "detection-as-code":
+  treating SIEM content like application code, with tests and a merge
+  gate, rather than hand-editing rules on a production manager over SSH.
+- **Training and education** - SOC-analyst onboarding, CTF/range
+  building, or just learning Wazuh internals hands-on via
+  `wazuh-logtest` (see the Quickstart below).
 
 ## What's covered
 
@@ -108,44 +159,48 @@ write-up - does not run `wazuh-logtest` in CI.
 
 ## Honest gaps (read this before trusting any of it blindly)
 
-- **This repo's CI turned up three real bugs before anything else saw the
-  code**, in order: (1) `<list negate="yes">` isn't valid syntax and
-  crashed analysisd outright; (2) `100910`/`100920` chained off Wazuh's
-  default Sysmon ruleset groups (`sysmon_event_10`, `sysmon_event8`) via
-  `<if_group>`, which never populated when `wazuh-logtest` decoded the
-  test JSON through its generic built-in `json` decoder instead of
-  whatever path feeds those groups for live agent telemetry - fixed by
-  matching directly on `win.system.channel`/`eventID` instead, the same
-  pattern `100930` already used; (3) a decoder `<order>` field literally
-  named `user` silently decoded as the static field `dstuser` instead,
-  so the CDB allow-list lookups referencing `field="user"` never matched
-  anything. None of these were visible from reading the XML - all three
-  came from `tests/run_tests.py` actually running against a live
-  `wazuh-manager`. See the full sequence of pushes in this repo's commit
-  history and [Actions runs](https://github.com/subrosa5/wazuh-detection-lab/actions)
-  if you want the blow-by-blow.
-- **The first pushed version of this repo failed its own CI**:
-  `<list field="..." negate="yes">` (used to exclude allow-listed
-  sources) is not valid Wazuh syntax - a real `wazuh-manager:4.14.7`
-  refused to start (`ERROR: List field="yes" is not valid`), and the
-  health-check step caught it before anything else ran. Fixed by
-  restructuring the allow-list check as a child rule instead of a
-  negated condition - see the comment headers in
-  `rules/100910-lsass-credential-access.xml` and
-  `rules/100900-app-bruteforce.xml`, and
-  [the run that caught it](https://github.com/subrosa5/wazuh-detection-lab/actions/runs/33967376239).
-  Left in the history deliberately instead of squashed away.
+- **This repo's CI turned up five real bugs before anything else saw the
+  code** - none visible just from reading the XML, all found by
+  `tests/run_tests.py` actually running against a live `wazuh-manager`:
+  1. `<list field="..." negate="yes">` (meant to exclude allow-listed
+     sources) isn't valid Wazuh syntax - a real `wazuh-manager:4.14.7`
+     refused to start (`ERROR: List field="yes" is not valid`), caught
+     by the health-check before anything else ran. Fixed by
+     restructuring the allow-list check as a child rule instead of a
+     negated condition ([the run that caught it](https://github.com/subrosa5/wazuh-detection-lab/actions/runs/33967376239)).
+  2. `100910`/`100920` chained off Wazuh's default Sysmon ruleset groups
+     (`sysmon_event_10`, `sysmon_event8`) via `<if_group>`, which never
+     populated because `wazuh-logtest` decodes fed JSON through its
+     generic built-in `json` decoder, not whatever path feeds those
+     groups for live agent telemetry - fixed by matching directly on
+     `win.system.channel`/`eventID`, the pattern `100930` already used.
+  3. A sibling-rule ambiguity: two child rules under `100920` both
+     matched the same test event, making the "most specific rule wins"
+     assumption untestable - fixed by adjusting the test sample, not the
+     rule logic.
+  4. CDB list keys that were Windows paths (`C:\...`) silently broke on
+     the drive-letter colon, which the CDB format's own docs say must be
+     quote-escaped - `lookup="match_key"` was comparing against the
+     wrong substring the whole time.
+  5. A decoder field named `user` turned out to collide with a reserved
+     Wazuh **static field** (`user`/`srcuser`/`dstuser`) with documented
+     upstream matching bugs ([wazuh/wazuh#15146](https://github.com/wazuh/wazuh/issues/15146),
+     [wazuh/wazuh-ruleset#868](https://github.com/wazuh/wazuh-ruleset/issues/868)) -
+     fixed by renaming it to a plain, unreserved field (`account`).
+
+  See the full sequence of pushes in this repo's commit history and
+  [Actions runs](https://github.com/subrosa5/wazuh-detection-lab/actions)
+  for the blow-by-blow - left in deliberately, not squashed away.
 - `rules/100920-process-injection.xml` has no benign test sample or
   allow-list - explained in its own doc, not hidden.
 - The LSASS allow-list (`lists/lsass-access-allowlist`) is path-based,
   which is convenience against noise, not a security boundary against a
   renamed/side-loaded binary - documented in the list file itself.
-- Sysmon default-ruleset group names (`sysmon_event_10`, `sysmon_event8`)
-  were verified against `wazuh-ruleset` source at the time of writing;
-  Wazuh has changed these before across releases. The PowerShell rule
-  set (`100930`) deliberately avoids asserting an unverified group name
-  and matches on raw channel/event ID fields instead - see the comment
-  header in that file.
+- None of the Sysmon/PowerShell rules depend on Wazuh's default-ruleset
+  group names anymore (bug #2 above is why) - all four match directly on
+  `win.system.channel`/`win.system.eventID`. More verbose than
+  `<if_group>`, but it doesn't break when Wazuh reshuffles its internal
+  ruleset, and it's what actually worked against the real engine.
 - None of the attack samples came from a live Windows host running
   Atomic Red Team - they're hand-built against the documented
   `wazuh-logtest` eventchannel JSON schema. The CI pipeline validates

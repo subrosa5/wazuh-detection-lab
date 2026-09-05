@@ -105,15 +105,18 @@ Requires Docker and Python 3.9+.
 git clone <this-repo>
 cd wazuh-detection-lab
 
-docker compose up -d                       # starts wazuh-manager:4.14.7
-bash scripts/bootstrap_manager.sh           # registers CDB lists, restarts analysisd
+docker compose up -d                       # starts wazuh-manager (pinned by digest, see docker-compose.yml)
+bash scripts/bootstrap_manager.sh           # stages CDB lists into the container, registers them, restarts analysisd
 python3 tests/run_tests.py                  # runs the full detection regression suite
 ```
 
-Expected output: `PASSED: all 8 test case(s).` (verified green in CI:
-[the run](https://github.com/subrosa5/wazuh-detection-lab/actions/runs/33969042374)
-after 8 iterations of the actual bug-hunting sequence below - left in the
-commit history on purpose).
+Expected output: `PASSED: all 9 test case(s).` (verified green in CI -
+see [Actions](https://github.com/subrosa5/wazuh-detection-lab/actions)
+for the current run; getting there took several real bug-hunting rounds,
+see "Honest gaps" below - left in the commit history on purpose).
+Everything this compose file publishes is bound to `127.0.0.1` only - see
+[`docs/architecture.md`](docs/architecture.md) "Security posture of this
+compose file" before running this anywhere but your own machine.
 
 To poke at a rule interactively:
 
@@ -161,9 +164,11 @@ write-up - does not run `wazuh-logtest` in CI.
 
 ## Honest gaps (read this before trusting any of it blindly)
 
-- **This repo's CI turned up five real bugs before anything else saw the
-  code** - none visible just from reading the XML, all found by
-  `tests/run_tests.py` actually running against a live `wazuh-manager`:
+- **This repo's CI (plus one external security review) turned up seven
+  real bugs before anything else saw the code** - none visible just from
+  reading the XML, all found by `tests/run_tests.py` actually running
+  against a live `wazuh-manager`, or by acting on the review's suggestion
+  to add a negative test instead of trusting the happy path:
   1. `<list field="..." negate="yes">` (meant to exclude allow-listed
      sources) isn't valid Wazuh syntax - a real `wazuh-manager:4.14.7`
      refused to start (`ERROR: List field="yes" is not valid`), caught
@@ -189,6 +194,30 @@ write-up - does not run `wazuh-logtest` in CI.
      upstream matching bugs ([wazuh/wazuh#15146](https://github.com/wazuh/wazuh/issues/15146),
      [wazuh/wazuh-ruleset#868](https://github.com/wazuh/wazuh-ruleset/issues/868)) -
      fixed by renaming it to a plain, unreserved field (`account`).
+  6. **The flagship correlation rule's 5-minute window never existed.**
+     An external review pointed out the existing test only ever exercised
+     the happy path and couldn't tell a real `timeframe` from an
+     unenforced one. Adding that negative test proved it: `timeframe` on
+     an `if_matched_sid` rule is silently ignored unless `frequency` is
+     *also* set ([wazuh/wazuh#7929](https://github.com/wazuh/wazuh/issues/7929)) -
+     and `frequency` requires >= 2 (it counts occurrences, so it can't
+     express "matched once"). There is no clean way to bound a
+     single-occurrence "A then B" chain to a time window in Wazuh's rule
+     engine. Rather than paper over it, `100940-credential-access-chain.xml`
+     now says exactly what it guarantees (ordering, not timing) and the
+     test asserts that honestly - see its header comment and
+     [`docs/detections/100940-credential-access-chain.md`](docs/detections/100940-credential-access-chain.md)
+     "Future work" for how to get a real bounded window (query-time
+     correlation, not the real-time rule engine).
+  7. The same review also flagged: ports published without a bind
+     address, port 1514 published as UDP when Wazuh's default secure
+     channel is TCP, `lists/` bind-mounted read-write onto the host
+     working tree, mutable image/action tags, and `scripts/check_rule_ids.py`
+     parsing rule IDs with a regex that would miss `<rule level="10"
+     id="100900">` (attribute order matters to a regex, not to XML).
+     All fixed - full writeup in
+     [`docs/architecture.md`](docs/architecture.md) "Security posture of
+     this compose file".
 
   See the full sequence of pushes in this repo's commit history and
   [Actions runs](https://github.com/subrosa5/wazuh-detection-lab/actions)

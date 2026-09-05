@@ -2,7 +2,7 @@
   {
     "_stage": "1-injection",
     "_expect_rule": 100921,
-    "_note": "Same injection as the positive-path sample, but stage 2 below is 10 minutes later - outside the 5-minute (timeframe=300) correlation window in rules/100940-credential-access-chain.xml. This proves the chain does NOT escalate on a stale precursor, not just that it escalates when everything lines up.",
+    "_note": "Same injection as the positive-path sample, but stage 2 below is 10 minutes later. Originally written to prove the chain would NOT escalate on a stale precursor - it turned out Wazuh's if_matched_sid can't enforce that bound for a single-occurrence chain (see rules/100940-credential-access-chain.xml header comment), so this now documents the real, unbounded behavior instead.",
     "win": {
       "system": {
         "providerName": "Microsoft-Windows-Sysmon",
@@ -32,7 +32,7 @@
   {
     "_stage": "2-lsass-dump-after-window-expired",
     "_expect_rule": 100912,
-    "_note": "10 minutes after stage 1 (>300s timeframe) - must fire the atomic LSASS rule (100912) but must NOT fire the chain rule (100941), since the injection precursor has aged out of the correlation window.",
+    "_note": "10 minutes after stage 1 - fires the atomic LSASS rule (100912) AND still escalates to the chain rule (100941), since if_matched_sid has no enforceable time bound here. See rules/100940-credential-access-chain.xml header comment.",
     "win": {
       "system": {
         "providerName": "Microsoft-Windows-Sysmon",

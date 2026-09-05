@@ -5,7 +5,7 @@
 | **Rule file** | `rules/100940-credential-access-chain.xml` |
 | **MITRE ATT&CK** | T1055 -> T1003.001 -> T1059.001 |
 | **Depends on** | `100920-process-injection.xml` (rule 100921), `100910-lsass-credential-access.xml` (rule 100912), `100930-powershell-suspicious.xml` (rule 100931) |
-| **Test** | `tests/samples/100940_chain_sequence.json` (3-stage sequence, fed as one `wazuh-logtest` session) |
+| **Tests** | `tests/samples/100940_chain_sequence.json` (3-stage escalation), `tests/samples/100940_chain_sequence_timeout.json` (stages 10 minutes apart - documents that the chain still fires, see below) |
 
 ## Why this rule exists
 
@@ -21,43 +21,61 @@ difference between writing rules and doing detection *engineering*.
 
 ## Logic
 
-- **100941** (level 13, `timeframe="300"`): the *current* event
-  independently matches **100912** (`<if_sid>`) - i.e. it's a real,
-  non-allow-listed, dumping-mask LSASS access - **and** **100921**
-  (shellcode injection) already fired on *some* prior event within the
-  last 5 minutes (`<if_matched_sid>`).
-- **100942** (level 15, `timeframe="300"`): the *current* event
-  independently matches **100931** (suspicious PowerShell) **and**
-  **100941** (the stage-2 chain alert) already fired within the last 5
-  minutes.
+- **100941** (level 13): the *current* event independently matches
+  **100912** (`<if_sid>`) - i.e. it's a real, non-allow-listed,
+  dumping-mask LSASS access - **and** **100921** (shellcode injection)
+  already fired on *some* prior event, at any point in this analysisd
+  session (`<if_matched_sid>`).
+- **100942** (level 15): the *current* event independently matches
+  **100931** (suspicious PowerShell) **and** **100941** (the stage-2
+  chain alert) already fired at some earlier point.
 
 `<if_sid>` and `<if_matched_sid>` do different things and this rule set
 depends on combining them correctly: `<if_sid>` requires the log
 *triggering this evaluation* to itself belong to that rule's match chain;
 `<if_matched_sid>` requires the referenced rule to have fired on *any*
-prior log within `timeframe`. Neither `100941` nor `100942` sets
-`frequency` - omitting it means "at least once in the window", not "N
-times"; `frequency` is reserved for volumetric rules like `100902`.
+prior log, full stop.
 
-## How the test proves it, without a 5-minute sleep in CI
+## No time bound - a real engine limitation, not a design choice
 
-Wazuh evaluates `timeframe` against each event's own embedded
-`systemTime`/timestamp, not wall-clock arrival time. `tests/samples/100940_chain_sequence.json`
-sets its three stages 30-90 seconds apart and `tests/run_tests.py` feeds
-them to one `wazuh-logtest` session back-to-back - so the correlation
-window is satisfied by the data, and CI runs in seconds, not minutes.
+The original version of this rule set `timeframe="300"` (5 minutes) on
+both rules, intending "B happened within 5 minutes of A". It doesn't
+work, and there's no clean way to make it work for a chain like this
+one. Two rounds of CI proved it, in order:
 
-The positive path alone only proves the chain *can* escalate, not that
-`timeframe="300"` is actually enforced as a boundary rather than just
-decoration - a suite that only ever exercises the happy path can't tell
-a real 5-minute window from an accidental unbounded one.
-`tests/samples/100940_chain_sequence_timeout.json` is the negative case:
-injection followed by an LSASS dump 10 minutes later. Both atomic rules
-(`100921`, `100912`) still fire independently - injection is still
-injection on its own merits - but `100941` must **not** fire, because
-the correlation window on its precursor has expired.
-`tests/test_manifest.json`'s `credential-access-chain-timeframe-expired`
-case asserts exactly that.
+1. **`timeframe` alone does nothing.** A negative test (injection, then
+   an LSASS dump 10 minutes later) escalated anyway. `timeframe` on an
+   `if_matched_sid` rule is silently ignored unless `frequency` is *also*
+   set - the docs describe them as used together, but the engine doesn't
+   enforce that pairing, so a rule shipping `timeframe` alone quietly
+   does nothing with it. Confirmed independently upstream:
+   [wazuh/wazuh#7929](https://github.com/wazuh/wazuh/issues/7929).
+2. **`frequency` can't express "once".** Adding `frequency="1"` to make
+   the pairing valid made `wazuh-manager` refuse to load the rule file at
+   all: `frequency` must be `>= 2`. It counts occurrences of the
+   referenced rule, so it's built for volumetric correlation ("brute
+   force: 5 failures in 2 minutes" - see `100902`), not "this exact
+   thing happened once, recently".
+
+**What this rule actually guarantees, as shipped:** injection happened at
+some point in this manager's uptime, then this specific LSASS access
+happened, in that order, on this host. That's a real, useful ordering
+signal - just weaker than a 5-minute window would be, and worth knowing
+about before you page someone with "within 5 minutes" language that
+isn't true. `tests/samples/100940_chain_sequence_timeout.json` (a
+10-minute gap) is kept as a regression test asserting exactly this
+current, honest behavior, not a decorative timeframe that never worked.
+
+## Future work: a real bounded window
+
+Getting an actual "within N minutes" guarantee for a single-occurrence
+chain means moving that specific correlation out of the real-time rule
+engine entirely - e.g. a scheduled query against `wazuh-alerts-*` in
+OpenSearch/Kibana (or an external correlation engine) that looks for
+`rule.id: 100921` and `rule.id: 100912` on the same `agent.id` within a
+bounded time range, which is exactly the kind of query Lucene/DSL is
+good at (see the "Where this kind of work applies" section of the main
+README) and the rule engine, per the above, is not.
 
 ## Known limitations
 

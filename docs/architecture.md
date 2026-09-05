@@ -63,6 +63,19 @@ session/token for as many lines as are piped into it, which is exactly
 the state `100940`'s correlation rules need to prove themselves in a
 test.
 
+## Health check
+
+The container healthcheck tests for the `wazuh-logtest` unix socket
+(`/var/ossec/queue/sockets/logtest`) specifically, not `wazuh-control
+status`. The latter was tried first and never reported healthy in CI:
+it also waits on the API and on the indexer-connector component inside
+`analysisd`, both of which retry indefinitely against an OpenSearch
+indexer this manager-only compose file deliberately doesn't run - the
+container logs showed `analysisd` (and `wazuh-logtest`) fully up and
+usable while `wazuh-control status` kept the healthcheck red. Checking
+for the exact socket this repo actually depends on is both more precise
+and faster to go green.
+
 ## Versioning
 
 `wazuh/wazuh-manager:4.14.7` is pinned explicitly everywhere it's

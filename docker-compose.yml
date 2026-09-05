@@ -24,8 +24,17 @@ services:
       - ./decoders:/var/ossec/etc/decoders:ro
       - ./lists:/var/ossec/etc/lists   # NOT read-only: Wazuh compiles each
         # plaintext list to a .cdb file in this same directory on load
+    # Deliberately narrow: checks for the wazuh-logtest unix socket
+    # specifically, not `wazuh-control status` (tried first - see
+    # docs/architecture.md "Health check"). `wazuh-control status` also
+    # waits on the API and the indexer-connector component inside
+    # analysisd, both of which retry forever against the indexer this
+    # manager-only compose file deliberately doesn't run - the container
+    # never reported healthy even though analysisd (and wazuh-logtest)
+    # were already up and fully usable.
     healthcheck:
-      test: ["CMD", "/var/ossec/bin/wazuh-control", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
+      test: ["CMD", "test", "-S", "/var/ossec/queue/sockets/logtest"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 40

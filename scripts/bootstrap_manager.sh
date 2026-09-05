@@ -25,15 +25,20 @@ done
 echo "Restarting wazuh-manager to load rules/decoders/lists ..."
 docker exec "$CONTAINER" /var/ossec/bin/wazuh-control restart
 
-echo "Waiting for analysisd to come back up ..."
-for _ in $(seq 1 20); do
-  if docker exec "$CONTAINER" /var/ossec/bin/wazuh-control status | grep -q "wazuh-analysisd is running"; then
+# Poll for the wazuh-logtest socket specifically, not `wazuh-control
+# status` - the latter also waits on components (API, indexer-connector)
+# this manager-only lab doesn't run and that retry indefinitely without a
+# real indexer. See docs/architecture.md "Health check" - the same issue
+# tripped up the Docker healthcheck itself before it was fixed the same way.
+echo "Waiting for wazuh-logtest socket to come back up ..."
+for _ in $(seq 1 30); do
+  if docker exec "$CONTAINER" test -S /var/ossec/queue/sockets/logtest; then
     echo "Manager ready."
     exit 0
   fi
   sleep 2
 done
 
-echo "wazuh-analysisd did not report running in time" >&2
+echo "wazuh-logtest socket did not reappear in time" >&2
 docker exec "$CONTAINER" /var/ossec/bin/wazuh-control status >&2 || true
 exit 1

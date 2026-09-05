@@ -33,21 +33,8 @@ jobs:
       - name: Check for duplicate / out-of-range rule IDs
         run: python3 scripts/check_rule_ids.py
 
-      - name: Start Wazuh manager
-        run: docker compose up -d
-
-      - name: Wait for manager container health check
-        run: |
-          set -euo pipefail
-          for i in $(seq 1 30); do
-            status="$(docker inspect --format='{{.State.Health.Status}}' wazuh-manager 2>/dev/null || echo starting)"
-            echo "attempt $i: $status"
-            [ "$status" = "healthy" ] && exit 0
-            sleep 5
-          done
-          echo "::error::wazuh-manager never became healthy"
-          docker logs wazuh-manager --tail 200
-          exit 1
+      - name: Start Wazuh manager (waits on the container health check)
+        run: docker compose up -d --wait --wait-timeout 240
 
       - name: Register CDB lists and restart analysisd
         run: bash scripts/bootstrap_manager.sh wazuh-manager
@@ -57,7 +44,9 @@ jobs:
 
       - name: Manager logs (on failure)
         if: failure()
-        run: docker logs wazuh-manager --tail 300
+        run: |
+          docker inspect --format='{{json .State.Health}}' wazuh-manager | python3 -m json.tool || true
+          docker logs wazuh-manager --tail 300
 
       - name: Regenerate MITRE coverage layer
         run: python3 scripts/generate_mitre_navigator_layer.py

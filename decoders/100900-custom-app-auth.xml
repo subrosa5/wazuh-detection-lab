@@ -20,5 +20,5 @@
 <decoder name="custom-app-auth">
   <parent>custom-app-auth</parent>
   <regex type="pcre2">^(\S+) app=(\S+) event=(\S+) user=(\S+) src_ip=(\S+) attempts=(\d+) reason="([^"]*)"</regex>
-  <order>timestamp,app,event_type,dstuser,srcip,attempts,reason</order>
+  <order>timestamp,app,event_type,account,srcip,attempts,reason</order>
 </decoder>

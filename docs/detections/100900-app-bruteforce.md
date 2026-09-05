@@ -28,23 +28,34 @@ app's auth log and the rest of the pattern holds.
    username also catches password-spraying (many usernames, one
    source), not just classic single-account brute force.
 
-## Caught by CI, not by review
+## Caught by CI, not by review (two rounds)
 
-The decoder's `<order>` originally named the fourth captured group `user`.
-`wazuh-logtest`'s Phase 2 field dump showed it decoded as `dstuser`
-instead - Wazuh silently maps `user` to the static `dstuser` field rather
-than creating a distinct dynamic field with that name. The rules'
+**Round 1:** the decoder's `<order>` originally named the fourth captured
+group `user`. `wazuh-logtest`'s Phase 2 field dump showed it decoded as
+`dstuser` instead of a plain dynamic field called `user`. The rules'
 `<list field="user">` lookups and `$(user)` description placeholders were
-therefore referencing a field that didn't exist: the CDB allow-list check
-silently never matched anything, and every alert description rendered
-`for user  from ...` with the name missing. Nothing in this failed loudly
-- it just quietly did the wrong thing, which is worse. `tests/run_tests.py`
-caught it because the test manifest asserts *which rule IDs* fire, and a
-non-functioning allow-list would eventually have shown up as a failed
-suppression test - but it was actually spotted directly in the raw
-`wazuh-logtest` field dump while debugging an unrelated harness bug. Fixed
-by using `dstuser` explicitly throughout instead of relying on an
-undocumented alias.
+therefore referencing a field that didn't exist under that name: the CDB
+allow-list check silently never matched anything, and every alert
+description rendered `for user  from ...` with the name missing. Nothing
+failed loudly - it just quietly did the wrong thing, which is worse.
+
+**Round 2:** switching every reference to `dstuser` (matching what the
+field dump actually showed) fixed the `$(dstuser)` description
+substitution, but `<list field="dstuser" lookup="match_key">` *still*
+never matched a value that was, byte-for-byte, sitting in the CDB list.
+`user`/`srcuser`/`dstuser` turn out to be Wazuh **static fields** with
+documented, long-standing limitations around generic `<field name=>`/
+`<list field=>` matching - see
+[wazuh/wazuh#15146](https://github.com/wazuh/wazuh/issues/15146),
+[wazuh/wazuh-ruleset#868](https://github.com/wazuh/wazuh-ruleset/issues/868),
+and [wazuh/wazuh#31648](https://github.com/wazuh/wazuh/issues/31648) for
+other people hitting variations of the same thing. The fix that actually
+worked: stop using a reserved static-field name at all. The decoder's
+`<order>` now calls the field `account` - a plain, unreserved dynamic
+field name - and every rule reference (`<list field="account">`,
+`$(account)`) uses that instead. Sidestepping the special-cased field
+entirely turned out to be more reliable than fighting to use it
+correctly.
 
 ## Known false positives
 
